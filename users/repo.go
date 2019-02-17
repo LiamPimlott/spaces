@@ -9,6 +9,7 @@ import (
 
 type UsersRepository interface {
 	Create(u User) (User, error)
+	GetPassword(email string) (User, error)
 	GetById(id int) (User, error)
 }
 
@@ -52,6 +53,28 @@ func (r *mysqlUsersRepository) Create(u User) (User, error) {
 	}
 
 	return User{ID: uint(id)}, nil
+}
+
+func (r *mysqlUsersRepository) GetPassword(email string) (User, error) {
+	var usr User
+
+	sql, args, err := sq.Select("password").
+		From("users").
+		Where(sq.Eq{"email": email}).
+		ToSql()
+
+	if err != nil {
+		log.Printf("error in user repo: %s", err.Error())
+		return User{}, err
+	}
+
+	err = r.DB.QueryRow(sql, args...).Scan(&usr.Password)
+	if err != nil {
+		log.Printf("error in user repo: %s", err.Error())
+		return User{}, err
+	}
+
+	return usr, nil
 }
 
 func (r *mysqlUsersRepository) GetById(id int) (User, error) {

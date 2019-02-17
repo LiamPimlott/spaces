@@ -66,7 +66,8 @@ func main() {
 
 	// handlers
 	createUserHandler := users.NewCreateUserHandler(usersService)
-	getUserHandler := users.NewGetUserByIdHandler(usersService)
+	loginUserHandler := users.NewLoginHandler(usersService)
+	getUserHandler := users.NewGetUserByIDHandler(usersService)
 
 	// routing
 	r := mux.NewRouter()
@@ -74,6 +75,7 @@ func main() {
 	// users
 	r.Handle("/users", createUserHandler).Methods("POST")
 	r.Handle("/users/{id}", getUserHandler).Methods("GET")
+	r.Handle("/users/login", loginUserHandler).Methods("POST")
 
 	// serve static assest like images, css from the /static/{file} route
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/build/static"))))
