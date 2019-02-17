@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 
+	auth "github.com/LiamPimlott/spaces/middleware"
 	"github.com/LiamPimlott/spaces/users"
 )
 
@@ -74,7 +75,7 @@ func main() {
 
 	// users
 	r.Handle("/users", createUserHandler).Methods("POST")
-	r.Handle("/users/{id}", getUserHandler).Methods("GET")
+	r.Handle("/users/{id}", auth.Authorized(getUserHandler, secret)).Methods("GET")
 	r.Handle("/users/login", loginUserHandler).Methods("POST")
 
 	// serve static assest like images, css from the /static/{file} route
