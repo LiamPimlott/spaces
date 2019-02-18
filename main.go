@@ -23,6 +23,7 @@ var (
 	dbPass string
 	dbName string
 	secret string
+	port   string
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	dbName = viper.GetString(`database.name`)
 
 	secret = viper.GetString(`jwt.secret`)
+	port = viper.GetString(`server.port`)
 }
 
 func main() {
@@ -57,7 +59,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("db is up.")
+	log.Println("db connected")
 
 	// repos
 	usersRepository := users.NewMysqlUsersRepository(db)
@@ -81,10 +83,10 @@ func main() {
 	// serve static assest like images, css from the /static/{file} route
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/build/static"))))
 
-	// root route will serve the built react app.
+	// root route will serve the built react app
 	r.Handle("/", http.FileServer(http.Dir("./frontend/build")))
 
 	// start server
-	log.Println("Listening on port 8080...")
-	http.ListenAndServe(":8080", handlers.LoggingHandler(os.Stdout, r))
+	log.Printf("listening on port %s\n", port)
+	http.ListenAndServe(port, handlers.LoggingHandler(os.Stdout, r))
 }

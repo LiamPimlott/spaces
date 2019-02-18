@@ -8,19 +8,20 @@ import (
 	"github.com/LiamPimlott/spaces/lib"
 )
 
-type UsersService interface {
+// Service interface to users service
+type Service interface {
 	Create(u User) (User, error)
 	Login(u User) (User, error)
 	GetByID(id int) (User, error)
 }
 
 type usersService struct {
-	repo   UsersRepository
+	repo   Repository
 	secret string
 }
 
 // NewUsersService will return a struct that implements the UsersService interface
-func NewUsersService(repo UsersRepository, secret string) *usersService {
+func NewUsersService(repo Repository, secret string) *usersService {
 	return &usersService{
 		repo:   repo,
 		secret: secret,

@@ -13,7 +13,7 @@ import (
 )
 
 // NewCreateUserHandler returns an http handler for creating users
-func NewCreateUserHandler(s UsersService) http.HandlerFunc {
+func NewCreateUserHandler(s Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		usrReq := &User{}
 
@@ -31,7 +31,7 @@ func NewCreateUserHandler(s UsersService) http.HandlerFunc {
 }
 
 // NewLoginHandler returns an http handler for logging in users
-func NewLoginHandler(s UsersService) http.HandlerFunc {
+func NewLoginHandler(s Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := &User{}
 
@@ -56,7 +56,7 @@ func NewLoginHandler(s UsersService) http.HandlerFunc {
 }
 
 // NewGetUserByIDHandler returns an http handler for getting users by id
-func NewGetUserByIDHandler(s UsersService) http.HandlerFunc {
+func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rtPrms := mux.Vars(r)
 

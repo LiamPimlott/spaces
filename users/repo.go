@@ -7,8 +7,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-// UsersRepository interface specifies database api
-type UsersRepository interface {
+// Repository interface specifies database api
+type Repository interface {
 	Create(u User) (User, error)
 	GetPassword(email string) (User, error)
 	GetById(id int) (User, error)
