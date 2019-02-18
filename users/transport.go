@@ -2,11 +2,11 @@ package users
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 
 	"github.com/LiamPimlott/spaces/lib"
@@ -74,7 +74,7 @@ func NewGetUserByIDHandler(s UsersService) http.HandlerFunc {
 			w.Write([]byte("Bad Request."))
 		}
 
-		uRsp, err := s.GetById(id)
+		usr, err := s.GetByID(id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(404)
@@ -86,13 +86,17 @@ func NewGetUserByIDHandler(s UsersService) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Set", "application/json; charset=utf-8")
-
-		err = json.NewEncoder(w).Encode(uRsp)
-		if err != nil {
-			log.Println("error encoding json.")
+		claims, ok := context.Get(r, "claims").(*utils.CustomClaims)
+		if !ok {
 			w.WriteHeader(500)
 			w.Write([]byte("Internal server error"))
+			return
 		}
+
+		if claims.ID != usr.ID {
+			usr = User{Username: usr.Username}
+		}
+
+		utils.Respond(w, usr)
 	}
 }

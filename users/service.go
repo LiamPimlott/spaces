@@ -11,7 +11,7 @@ import (
 type UsersService interface {
 	Create(u User) (User, error)
 	Login(u User) (User, error)
-	GetById(id int) (User, error)
+	GetByID(id int) (User, error)
 }
 
 type usersService struct {
@@ -44,7 +44,7 @@ func (s *usersService) Create(u User) (User, error) {
 		return User{}, err
 	}
 
-	token, err := utils.GenerateToken(usr.Username, s.secret)
+	token, err := utils.GenerateToken(usr.ID, s.secret)
 	if err != nil {
 		log.Printf("error creating user: %s\n", err)
 		return User{}, err
@@ -69,7 +69,7 @@ func (s *usersService) Login(u User) (User, error) {
 		return User{}, err
 	}
 
-	token, err := utils.GenerateToken(usr.Username, s.secret)
+	token, err := utils.GenerateToken(usr.ID, s.secret)
 	if err != nil {
 		log.Printf("error logging in user: %s\n", err)
 		return User{}, err
@@ -78,8 +78,8 @@ func (s *usersService) Login(u User) (User, error) {
 	return User{Token: token}, nil
 }
 
-// GetById retrieves a user by their id
-func (s *usersService) GetById(id int) (User, error) {
+// GetByID retrieves a user by their id
+func (s *usersService) GetByID(id int) (User, error) {
 	usr, err := s.repo.GetById(id)
 	if err != nil {
 		log.Printf("error getting user: %s\n", err)

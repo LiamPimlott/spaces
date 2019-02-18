@@ -9,6 +9,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type CustomClaims struct {
+	ID uint `json:"id"`
+	jwt.StandardClaims
+}
+
 // NotImplementedHandler writes a not implemented response
 var NotImplementedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Not Implemented"))
@@ -46,14 +51,16 @@ func WriteInternalError(w http.ResponseWriter) {
 }
 
 // GenerateToken generates a signed jwt token string for a user
-func GenerateToken(userName, secret string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
+func GenerateToken(id uint, secret string) (string, error) {
+	claims := CustomClaims{
+		id,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
+			Issuer:    "test",
+		},
+	}
 
-	claims := token.Claims.(jwt.MapClaims)
-
-	claims["authorized"] = true
-	claims["client"] = userName
-	claims["exp"] = time.Now().Add(time.Minute * 5).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	ts, err := token.SignedString([]byte(secret))
 	if err != nil {

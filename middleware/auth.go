@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/context"
+
+	"github.com/LiamPimlott/spaces/lib"
 )
 
 // Authorized middleware to require a valid jwt token
@@ -28,7 +31,7 @@ func Authorized(endpoint func(http.ResponseWriter, *http.Request), secret string
 			return
 		}
 
-		token, err := jwt.Parse(reqToken, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(reqToken, &utils.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("There was an error")
 			}
@@ -47,6 +50,19 @@ func Authorized(endpoint func(http.ResponseWriter, *http.Request), secret string
 			fmt.Fprintf(w, "Not Authorized")
 			return
 		}
+
+		claims, ok := token.Claims.(*utils.CustomClaims)
+		if !ok {
+			w.WriteHeader(500)
+			fmt.Fprintf(w, "Internal Server Error")
+
+		} else if !token.Valid {
+			w.WriteHeader(403)
+			fmt.Fprintf(w, "Not Authorized")
+			return
+		}
+
+		context.Set(r, "claims", claims)
 
 		endpoint(w, r)
 	})

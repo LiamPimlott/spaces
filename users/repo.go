@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// UsersRepository interface specifies database api
 type UsersRepository interface {
 	Create(u User) (User, error)
 	GetPassword(email string) (User, error)
@@ -24,6 +25,7 @@ func NewMysqlUsersRepository(db *sql.DB) *mysqlUsersRepository {
 	}
 }
 
+// Create inserts a new user into the db
 func (r *mysqlUsersRepository) Create(u User) (User, error) {
 	// TODO: validate & sanitize
 
@@ -55,32 +57,20 @@ func (r *mysqlUsersRepository) Create(u User) (User, error) {
 	return User{ID: uint(id)}, nil
 }
 
+// GetPassword retrieves the id, email and password for an email
 func (r *mysqlUsersRepository) GetPassword(email string) (User, error) {
 	var usr User
 
-	sql, args, err := sq.Select("password").
+	stmnt, args, err := sq.Select("id", "email", "password").
 		From("users").
 		Where(sq.Eq{"email": email}).
 		ToSql()
-
 	if err != nil {
 		log.Printf("error in user repo: %s", err.Error())
 		return User{}, err
 	}
 
-	err = r.DB.QueryRow(sql, args...).Scan(&usr.Password)
-	if err != nil {
-		log.Printf("error in user repo: %s", err.Error())
-		return User{}, err
-	}
-
-	return usr, nil
-}
-
-func (r *mysqlUsersRepository) GetById(id int) (User, error) {
-	var usr User
-
-	err := r.DB.QueryRow("select id, email from users where id = ?", id).Scan(&usr.ID, &usr.Email)
+	err = r.DB.QueryRow(stmnt, args...).Scan(&usr.ID, &usr.Email, &usr.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("user %d not found.", usr.ID)
@@ -90,6 +80,38 @@ func (r *mysqlUsersRepository) GetById(id int) (User, error) {
 		return User{}, err
 	}
 
-	log.Printf("user %d retrieved.", usr.ID)
+	return usr, nil
+}
+
+// GetById get user by id
+func (r *mysqlUsersRepository) GetById(id int) (User, error) {
+	var usr User
+
+	stmnt, args, err := sq.Select("id", "first_name", "last_name", "username", "email").
+		From("users").
+		Where(sq.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		log.Printf("error in user repo: %s", err.Error())
+		return User{}, err
+	}
+
+	err = r.DB.QueryRow(stmnt, args...).Scan(
+		&usr.ID,
+		&usr.FirstName,
+		&usr.LastName,
+		&usr.Username,
+		&usr.Email,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("user %d not found.", usr.ID)
+			return User{}, err
+		}
+		log.Printf("error in user repo: %s", err.Error())
+		return User{}, err
+	}
+
 	return usr, nil
 }
