@@ -32,7 +32,6 @@ func (r *mysqlUsersRepository) Create(u User) (User, error) {
 	sql, args, err := sq.Insert("users").SetMap(sq.Eq{
 		"first_name": u.FirstName,
 		"last_name":  u.LastName,
-		"username":   u.Username,
 		"email":      u.Email,
 		"password":   u.Password,
 	}).ToSql()
@@ -87,7 +86,7 @@ func (r *mysqlUsersRepository) GetPassword(email string) (User, error) {
 func (r *mysqlUsersRepository) GetById(id int) (User, error) {
 	var usr User
 
-	stmnt, args, err := sq.Select("id", "first_name", "last_name", "username", "email").
+	stmnt, args, err := sq.Select("id", "first_name", "last_name", "email").
 		From("users").
 		Where(sq.Eq{"id": id}).
 		ToSql()
@@ -100,7 +99,6 @@ func (r *mysqlUsersRepository) GetById(id int) (User, error) {
 		&usr.ID,
 		&usr.FirstName,
 		&usr.LastName,
-		&usr.Username,
 		&usr.Email,
 	)
 

@@ -19,6 +19,13 @@ func NewCreateUserHandler(s Service) http.HandlerFunc {
 
 		utils.Decode(w, r, usrReq)
 
+		ok, err := usrReq.Valid()
+		if !ok || err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
 		usr, err := s.Create(*usrReq)
 		if err != nil {
 			log.Println("error creating user.")
@@ -64,14 +71,14 @@ func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 		if !ok {
 			log.Println("missing id")
 			w.WriteHeader(400)
-			w.Write([]byte("Bad Request."))
+			w.Write([]byte("Bad request"))
 		}
 
 		id, err := strconv.Atoi(idStrng)
 		if err != nil {
 			log.Println("invalid id")
 			w.WriteHeader(400)
-			w.Write([]byte("Bad Request."))
+			w.Write([]byte("Bad request"))
 		}
 
 		usr, err := s.GetByID(id)
@@ -94,7 +101,10 @@ func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 		}
 
 		if claims.ID != usr.ID {
-			usr = User{Username: usr.Username}
+			usr = User{
+				FirstName: usr.FirstName,
+				LastName:  usr.LastName,
+			}
 		}
 
 		utils.Respond(w, usr)
