@@ -55,7 +55,7 @@ func GenerateToken(id uint, secret string) (string, error) {
 	claims := CustomClaims{
 		id,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
 			Issuer:    "test",
 		},
 	}

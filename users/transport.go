@@ -31,6 +31,7 @@ func NewCreateUserHandler(s Service) http.HandlerFunc {
 			log.Println("error creating user.")
 			w.WriteHeader(500)
 			w.Write([]byte("Internal server error"))
+			return
 		}
 
 		utils.Respond(w, usr)
@@ -56,6 +57,7 @@ func NewLoginHandler(s Service) http.HandlerFunc {
 
 			w.WriteHeader(500)
 			w.Write([]byte("Internal server error"))
+			return
 		}
 
 		utils.Respond(w, tkn)
@@ -72,6 +74,7 @@ func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 			log.Println("missing id")
 			w.WriteHeader(400)
 			w.Write([]byte("Bad request"))
+			return
 		}
 
 		id, err := strconv.Atoi(idStrng)
@@ -79,6 +82,7 @@ func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 			log.Println("invalid id")
 			w.WriteHeader(400)
 			w.Write([]byte("Bad request"))
+			return
 		}
 
 		usr, err := s.GetByID(id)

@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	auth "github.com/LiamPimlott/spaces/middleware"
+	"github.com/LiamPimlott/spaces/spaces"
 	"github.com/LiamPimlott/spaces/users"
 )
 
@@ -61,24 +62,27 @@ func main() {
 	}
 	log.Println("db connected")
 
-	// repos
+	r := mux.NewRouter()
+
+	// Users
 	usersRepository := users.NewMysqlUsersRepository(db)
-
-	// services
 	usersService := users.NewUsersService(usersRepository, secret)
-
 	// handlers
 	createUserHandler := users.NewCreateUserHandler(usersService)
 	loginUserHandler := users.NewLoginHandler(usersService)
 	getUserHandler := users.NewGetUserByIDHandler(usersService)
-
-	// routing
-	r := mux.NewRouter()
-
-	// users
+	// routes
 	r.Handle("/users", createUserHandler).Methods("POST")
 	r.Handle("/users/{id}", auth.Authorized(getUserHandler, secret)).Methods("GET")
 	r.Handle("/users/login", loginUserHandler).Methods("POST")
+
+	// Spaces
+	spacesRepository := spaces.NewMysqlSpacesRepository(db)
+	spacesService := spaces.NewSpacesService(spacesRepository)
+	// handlers
+	createSpaceHandler := spaces.NewCreateSpaceHandler(spacesService)
+	// routes
+	r.Handle("/spaces", auth.Authorized(createSpaceHandler, secret)).Methods("POST")
 
 	// serve static assest like images, css from the /static/{file} route
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/build/static"))))
