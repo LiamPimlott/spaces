@@ -9,7 +9,8 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 
-	"github.com/LiamPimlott/spaces/lib"
+	"github.com/LiamPimlott/spaces/lib/errs"
+	"github.com/LiamPimlott/spaces/lib/utils"
 )
 
 // NewCreateUserHandler returns an http handler for creating users
@@ -21,16 +22,14 @@ func NewCreateUserHandler(s Service) http.HandlerFunc {
 
 		ok, err := usrReq.Valid()
 		if !ok || err != nil {
-			w.WriteHeader(400)
-			w.Write([]byte(err.Error()))
+			utils.RespondError(w, errs.ErrInvalid.Code, errs.ErrInvalid.Msg, err.Error())
 			return
 		}
 
 		usr, err := s.Create(*usrReq)
 		if err != nil {
-			log.Println("error creating user.")
-			w.WriteHeader(500)
-			w.Write([]byte("Internal server error"))
+			log.Println("error creating user")
+			utils.RespondError(w, errs.ErrInternal.Code, errs.ErrInternal.Msg, "")
 			return
 		}
 
@@ -45,18 +44,20 @@ func NewLoginHandler(s Service) http.HandlerFunc {
 
 		utils.Decode(w, r, body)
 
+		ok := body.ValidLogin()
+		if !ok {
+			utils.RespondError(w, errs.ErrInvalid.Code, errs.ErrInvalid.Msg, "")
+			return
+		}
+
 		tkn, err := s.Login(*body)
 		if err != nil {
 			log.Printf("error logging in user: %s\n", err)
-
 			if err == sql.ErrNoRows {
-				w.WriteHeader(404)
-				w.Write([]byte("Not found"))
+				utils.RespondError(w, errs.ErrNotFound.Code, errs.ErrNotFound.Msg, "")
 				return
 			}
-
-			w.WriteHeader(500)
-			w.Write([]byte("Internal server error"))
+			utils.RespondError(w, errs.ErrInternal.Code, errs.ErrInternal.Msg, "")
 			return
 		}
 
@@ -71,36 +72,29 @@ func NewGetUserByIDHandler(s Service) http.HandlerFunc {
 
 		idStrng, ok := rtPrms["id"]
 		if !ok {
-			log.Println("missing id")
-			w.WriteHeader(400)
-			w.Write([]byte("Bad request"))
+			utils.RespondError(w, errs.ErrInvalid.Code, errs.ErrInvalid.Msg, "missing user id in url")
 			return
 		}
 
 		id, err := strconv.Atoi(idStrng)
 		if err != nil {
-			log.Println("invalid id")
-			w.WriteHeader(400)
-			w.Write([]byte("Bad request"))
+			utils.RespondError(w, errs.ErrInvalid.Code, errs.ErrInvalid.Msg, "invalid user id in url")
 			return
 		}
 
 		usr, err := s.GetByID(id)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				w.WriteHeader(404)
-				w.Write([]byte("Not found"))
+				utils.RespondError(w, errs.ErrNotFound.Code, errs.ErrNotFound.Msg, "")
 				return
 			}
-			w.WriteHeader(500)
-			w.Write([]byte("Internal server error"))
+			utils.RespondError(w, errs.ErrInternal.Code, errs.ErrInternal.Msg, "")
 			return
 		}
 
 		claims, ok := context.Get(r, "claims").(*utils.CustomClaims)
 		if !ok {
-			w.WriteHeader(500)
-			w.Write([]byte("Internal server error"))
+			utils.RespondError(w, errs.ErrInternal.Code, errs.ErrInternal.Msg, "")
 			return
 		}
 

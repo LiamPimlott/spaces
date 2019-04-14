@@ -46,8 +46,11 @@ func init() {
 }
 
 func main() {
-	// db
-	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
+	////////
+	// DB //
+	////////
+
+	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPass, dbHost, dbPort, dbName)
 
 	db, err := sql.Open("mysql", connection)
 	if err != nil {
@@ -62,27 +65,49 @@ func main() {
 	}
 	log.Println("db connected")
 
+	////////////
+	// ROUTER //
+	////////////
+
 	r := mux.NewRouter()
 
-	// Users
+	///////////
+	// USERS //
+	///////////
+
+	// repo & service
 	usersRepository := users.NewMysqlUsersRepository(db)
 	usersService := users.NewUsersService(usersRepository, secret)
+
 	// handlers
 	createUserHandler := users.NewCreateUserHandler(usersService)
 	loginUserHandler := users.NewLoginHandler(usersService)
-	getUserHandler := users.NewGetUserByIDHandler(usersService)
+	getUserByIDHandler := users.NewGetUserByIDHandler(usersService)
+
 	// routes
 	r.Handle("/users", createUserHandler).Methods("POST")
-	r.Handle("/users/{id}", auth.Authorized(getUserHandler, secret)).Methods("GET")
+	r.Handle("/users/{id}", auth.Required(getUserByIDHandler, secret)).Methods("GET")
 	r.Handle("/users/login", loginUserHandler).Methods("POST")
 
-	// Spaces
+	////////////
+	// SPACES //
+	////////////
+
+	// repo & service
 	spacesRepository := spaces.NewMysqlSpacesRepository(db)
 	spacesService := spaces.NewSpacesService(spacesRepository)
+
 	// handlers
 	createSpaceHandler := spaces.NewCreateSpaceHandler(spacesService)
+	getSpaceByIDHandler := spaces.NewGetSpaceByIDHandler(spacesService)
+
 	// routes
-	r.Handle("/spaces", auth.Authorized(createSpaceHandler, secret)).Methods("POST")
+	r.Handle("/spaces", auth.Required(createSpaceHandler, secret)).Methods("POST")
+	r.Handle("/spaces/{id}", auth.Optional(getSpaceByIDHandler, secret)).Methods("GET")
+
+	////////////
+	// STATIC //
+	////////////
 
 	// serve static assest like images, css from the /static/{file} route
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/build/static"))))

@@ -9,61 +9,87 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 
-	"github.com/LiamPimlott/spaces/lib"
+	"github.com/LiamPimlott/spaces/lib/errs"
+	"github.com/LiamPimlott/spaces/lib/utils"
 )
 
-// Authorized middleware to require a valid jwt token
-func Authorized(endpoint func(http.ResponseWriter, *http.Request), secret string) http.Handler {
+// Required middleware requires a request a valid jwt token in the authorization header.
+func Required(endpoint func(http.ResponseWriter, *http.Request), secret string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqToken := r.Header.Get("Authorization")
-		splitToken := strings.Split(reqToken, "Bearer ")
 
-		if len(splitToken) != 2 {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Invalid Authorization Header")
-			return
-		}
-		reqToken = splitToken[1]
+		authHeader := r.Header.Get("Authorization")
 
-		if reqToken == "" {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Invalid Authorization Header")
+		if len(authHeader) <= 0 {
+			utils.RespondError(w, errs.ErrInvalidAuth.Code, errs.ErrInvalidAuth.Msg, "")
 			return
 		}
 
-		token, err := jwt.ParseWithClaims(reqToken, &utils.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("There was an error")
-			}
-			return []byte(secret), nil
-		})
-
+		code, err := parseToken(r, authHeader, secret)
 		if err != nil {
-			log.Printf("error authorizing user: %s\n", err.Error())
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Invalid Authorization Header")
+			utils.RespondError(w, code, err.Error(), "")
 			return
 		}
-
-		if !token.Valid {
-			w.WriteHeader(403)
-			fmt.Fprintf(w, "Not Authorized")
-			return
-		}
-
-		claims, ok := token.Claims.(*utils.CustomClaims)
-		if !ok {
-			w.WriteHeader(500)
-			fmt.Fprintf(w, "Internal Server Error")
-
-		} else if !token.Valid {
-			w.WriteHeader(403)
-			fmt.Fprintf(w, "Not Authorized")
-			return
-		}
-
-		context.Set(r, "claims", claims)
 
 		endpoint(w, r)
 	})
+}
+
+// Optional middleware will only evaluate a jwt if the authorization header is set.
+func Optional(endpoint func(http.ResponseWriter, *http.Request), secret string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+
+		if len(authHeader) <= 0 {
+			endpoint(w, r)
+			return
+		}
+
+		code, err := parseToken(r, authHeader, secret)
+		if err != nil {
+			utils.RespondError(w, code, err.Error(), "")
+			return
+		}
+
+		endpoint(w, r)
+	})
+}
+
+func parseToken(r *http.Request, auth, secret string) (int, error) {
+	splitToken := strings.Split(auth, "Bearer ")
+	if len(splitToken) != 2 {
+		return errs.ErrInvalidAuth.Code, errs.ErrInvalidAuth
+	}
+
+	reqToken := splitToken[1]
+	if reqToken == "" {
+		return errs.ErrInvalidAuth.Code, errs.ErrInvalidAuth
+	}
+
+	token, err := jwt.ParseWithClaims(reqToken, &utils.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("there was an error")
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		log.Printf("error authorizing user: %s\n", err.Error())
+		return errs.ErrInvalidAuth.Code, errs.ErrInvalidAuth
+	}
+
+	if !token.Valid {
+		return errs.ErrForbidden.Code, errs.ErrForbidden
+	}
+
+	claims, ok := token.Claims.(*utils.CustomClaims)
+	if !ok {
+		return errs.ErrInternal.Code, errs.ErrInternal
+	}
+	if !token.Valid {
+		return errs.ErrForbidden.Code, errs.ErrForbidden
+	}
+
+	context.Set(r, "claims", claims)
+
+	return 0, nil
 }

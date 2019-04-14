@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/LiamPimlott/spaces/lib"
+	"github.com/LiamPimlott/spaces/lib/utils"
 )
 
 // Service interface to users service

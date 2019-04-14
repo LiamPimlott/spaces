@@ -10,6 +10,7 @@ import (
 // Repository interface specifies database api
 type Repository interface {
 	Create(u Space) (Space, error)
+	GetById(id int) (Space, error)
 }
 
 type mysqlSpacesRepository struct {
@@ -56,4 +57,40 @@ func (r *mysqlSpacesRepository) Create(s Space) (Space, error) {
 	}
 
 	return Space{ID: uint(id)}, nil
+}
+
+// GetById get space by id
+func (r *mysqlSpacesRepository) GetById(id int) (Space, error) {
+	var space Space
+
+	stmnt, args, err := sq.Select("*").From("Spaces").Where(sq.Eq{"id": id}).ToSql()
+	if err != nil {
+		log.Printf("error in spaces repo: %s", err.Error())
+		return Space{}, err
+	}
+
+	err = r.DB.QueryRow(stmnt, args...).Scan(
+		&space.ID,
+		&space.OwnerID,
+		&space.Title,
+		&space.Description,
+		&space.Address,
+		&space.City,
+		&space.Province,
+		&space.Country,
+		&space.PostalCode,
+		&space.CreatedAt,
+		&space.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("space %d not found.", space.ID)
+			return Space{}, err
+		}
+		log.Printf("error in space repo: %s", err.Error())
+		return Space{}, err
+	}
+
+	return space, nil
 }
